@@ -3,7 +3,6 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-
 // Configuración de pines ESP32-WROOM-32
 #define NSS 5
 #define RESET 2
@@ -11,14 +10,13 @@
 #define MISO 19
 #define MOSI 23
 
-
-
 // Direcciones LoRa
-#define LOCAL_ADDRESS 0xAA    // Dirección del transmisor (ESP32)
-#define RECEIVER_ADDRESS 0xFF // Dirección del receptor
+#define LOCAL_ADDRESS 0xAA
+#define RECEIVER_ADDRESS 0xFF
 
 int msgCount = 0;
 
+// Estructura del mensaje de datos
 typedef struct struct_message {
   float temperatura;
   float temperaturaA;
@@ -29,28 +27,62 @@ typedef struct struct_message {
 
 struct_message datosRecibidos;
 
+// Estructura ACK
+typedef struct struct_ack {
+  uint8_t idNodo;
+  bool recibido;
+} struct_ack;
+
+struct_ack ackMsg;
+
+// Enviar mensaje por LoRa
+void sendMessage(String outgoing) {
+  LoRa.beginPacket();
+  LoRa.write(RECEIVER_ADDRESS);
+  LoRa.write(LOCAL_ADDRESS);
+  LoRa.write(msgCount);
+  LoRa.write(outgoing.length());
+  LoRa.print(outgoing);
+  LoRa.endPacket();
+  msgCount++;
+}
+
+// Callback de recepción ESP-NOW
 void OnDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *incomingData, int len) {
   memcpy(&datosRecibidos, incomingData, sizeof(datosRecibidos));
 
-  char macStr[18];
-  snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
-           recv_info->src_addr[0], recv_info->src_addr[1], recv_info->src_addr[2],
-           recv_info->src_addr[3], recv_info->src_addr[4], recv_info->src_addr[5]);
+  String mensaje = String(datosRecibidos.idNodo) + "," +
+                   String(datosRecibidos.temperatura) + "," +
+                   String(datosRecibidos.humedad) + "," +
+                   String(datosRecibidos.temperaturaA) + "," +
+                   String(datosRecibidos.humedadA);
+
+  sendMessage(mensaje);
+
+  Serial.print("Enviando: ");
+  Serial.println(mensaje);
+
+  // Preparar ACK
+  ackMsg.idNodo = datosRecibidos.idNodo;
+  ackMsg.recibido = true;
+
+  // Enviar ACK a la MAC que envió el paquete
+  esp_now_send(recv_info->src_addr, (uint8_t *)&ackMsg, sizeof(ackMsg));
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
+
   // Configurar SPI con pines específicos
   SPI.begin(SCK, MISO, MOSI, NSS);
-  // Configurar LoRa
   LoRa.setPins(NSS, RESET);
 
   if (!LoRa.begin(915E6)) {
     Serial.println("Error al iniciar LoRa");
     while (1);
   }
-  
-  LoRa.setTxPower(20);  // Máxima potencia (20 dBm)
+
+  LoRa.setTxPower(20);
   Serial.println("Transmisor iniciado");
 
   WiFi.mode(WIFI_STA);
@@ -63,30 +95,8 @@ void setup() {
   }
 
   esp_now_register_recv_cb(OnDataRecv);
+}
 
-}
-void sendMessage(String outgoing) {
-  LoRa.beginPacket();
-  LoRa.write(RECEIVER_ADDRESS);  // Dirección destino
-  LoRa.write(LOCAL_ADDRESS);     // Dirección origen
-  LoRa.write(msgCount);          // Contador de mensajes
-  LoRa.write(outgoing.length()); // Longitud del mensaje
-  LoRa.print(outgoing);          // Contenido del mensaje
-  LoRa.endPacket();
-  
-  msgCount++;
-}
 void loop() {
-
-  
-  String mensaje = String(datosRecibidos.idNodo) + "," + String(datosRecibidos.temperatura) + "," 
-  + String(datosRecibidos.humedad) + "," + String(datosRecibidos.temperaturaA) + "," + String(datosRecibidos.humedadA);
-  
-  // Enviar mensaje
-  sendMessage(mensaje);
-  
-  Serial.print("Enviando: ");
-  Serial.println(mensaje);
-  
-  delay(1000); // Esperar 1 segundos entre transmisiones
+  // Vacío: toda la lógica está en el callback OnDataRecv()
 }
