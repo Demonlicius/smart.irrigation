@@ -9,7 +9,7 @@
 int countmsg = 0;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   while (!Serial);
 
   LoRa.setPins(NSS, RST); // Sin DIO0
@@ -19,7 +19,7 @@ void setup() {
     while (true);
   }
 
-  Serial.println("Receptor LoRa listo");
+  
 }
 
 void loop() {
@@ -38,12 +38,7 @@ void loop() {
     message += (char)LoRa.read();
   }
   
-  countmsg = countmsg + 1;
-
   if (message.length() != length) return;
-
-  Serial.print(countmsg);
-  Serial.print(" 0x");
   Serial.print(sender, HEX);
   Serial.print(",");
   Serial.println(message);
