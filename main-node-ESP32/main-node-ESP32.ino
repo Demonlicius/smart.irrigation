@@ -77,9 +77,10 @@ void sendMessage(String outgoing) {
   msgCount++;
 }
 void loop() {
+
   
-  String mensaje = String(LOCAL_ADDRESS) + "," + datosRecibidos.idNodo + "," + datosRecibidos.temperatura + "," 
-  + datosRecibidos.humedad + "," + datosRecibidos.temperaturaA + "," + datosRecibidos.humedadA;
+  String mensaje = String(datosRecibidos.idNodo) + "," + String(datosRecibidos.temperatura) + "," 
+  + String(datosRecibidos.humedad) + "," + String(datosRecibidos.temperaturaA) + "," + String(datosRecibidos.humedadA);
   
   // Enviar mensaje
   sendMessage(mensaje);
