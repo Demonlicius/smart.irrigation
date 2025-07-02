@@ -6,7 +6,7 @@
 
 // Pines
 #define ONE_WIRE_BUS 27
-#define SENSOR_HUMEDAD 26
+#define SENSOR_HUMEDAD 32
 int pinDHT = 25;
 
 // Instancias
@@ -52,15 +52,12 @@ void setup() {
   Serial.begin(9600);
   sensors.begin();
   dht.setup(pinDHT, DHTesp::DHT11);
-  datosSensor.idNodo = 2;
+  datosSensor.idNodo = 2; //cambiar id en cada dispositivo nuevo
   initEspNow();
 }
 
 void loop() {
-  // Apaga radio para usar ADC2
-  esp_now_deinit();
-  WiFi.mode(WIFI_OFF); 
-  delay(100);
+
 
   int lectura = analogRead(SENSOR_HUMEDAD);  
   int humedads = map(lectura, 1200, 4095, 100, 0); 
@@ -77,9 +74,6 @@ void loop() {
 
   delay(100); 
 
-  // Reinicia radio y ESP-NOW
-  initEspNow();
-  delay(100); 
   esp_now_send(broadcastAddress, (uint8_t*)&datosSensor, sizeof(datosSensor));
 
   delay(2000); 
