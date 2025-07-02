@@ -1,1 +1,1 @@
-
+This code corresponds to the Arduino-based receiver that obtains data from the main ESP32 node. It transmits all information through its serial port to a PC, where a Python script saves the data into a CSV file.

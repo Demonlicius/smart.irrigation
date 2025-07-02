@@ -1,0 +1,1 @@
+This code can be replicated for each sensor node to be deployed in the crop field, by modifying only the node ID defined in the code. It is recommended to use no more than 15 to 20 master devices sending data to a single slave node to avoid network congestion.
