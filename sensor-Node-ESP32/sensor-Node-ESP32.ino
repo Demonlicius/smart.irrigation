@@ -74,17 +74,21 @@ void initEspNow() {
 void setup() {
   Serial.begin(9600);
   sensors.begin();
+
+
   dht.setup(pinDHT, DHTesp::DHT11);
   datosSensor.idNodo = 2; // Cambiar en cada nodo
   initEspNow();
 }
-
+                                                                  
 void loop() {
   int lectura = analogRead(SENSOR_HUMEDAD);  
-  int humedads = map(lectura, 1200, 4095, 100, 0); 
+  int humedads = map(lectura, 0, 4095, 100, 0); 
 
   sensors.requestTemperatures();
+
   float tempC = sensors.getTempCByIndex(0);
+  
   TempAndHumidity data = dht.getTempAndHumidity();
 
   datosSensor.temperatura = tempC;
