@@ -63,8 +63,8 @@ void OnDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *incomingDat
   Serial.println(mensaje);
 
   // Preparar ACK
-  ackMsg.idNodo = datosRecibidos.idNodo;
-  ackMsg.recibido = true;
+  if(ackMsg.idNodo == datosRecibidos.idNodo)
+    ackMsg.recibido = true;
 
   // Enviar ACK a la MAC que envió el paquete
   esp_now_send(recv_info->src_addr, (uint8_t *)&ackMsg, sizeof(ackMsg));
