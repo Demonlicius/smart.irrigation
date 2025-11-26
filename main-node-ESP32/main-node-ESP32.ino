@@ -16,24 +16,15 @@
 
 int msgCount = 0;
 
-// Estructura del mensaje de datos
-typedef struct struct_message {
-  float temperatura;
-  float temperaturaA;
-  float humedadA;
-  int humedad;
-  uint8_t idNodo;
-} struct_message;
+char datos[6][32];
 
-struct_message datosRecibidos;
-
-// Estructura ACK
-typedef struct struct_ack {
+// ACK a nivel aplicación
+typedef struct {
   uint8_t idNodo;
   bool recibido;
 } struct_ack;
 
-struct_ack ackMsg;
+struct_ack ack;
 
 // Enviar mensaje por LoRa
 void sendMessage(String outgoing) {
@@ -47,27 +38,29 @@ void sendMessage(String outgoing) {
   msgCount++;
 }
 
-// Callback de recepción ESP-NOW
-void OnDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *incomingData, int len) {
-  memcpy(&datosRecibidos, incomingData, sizeof(datosRecibidos));
+void onReceive(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+  if (len == sizeof(datos)) {
+    memcpy(datos, data, sizeof(datos));
+    String mensaje = "";
+    Serial.println("Datos recibidos:");
+    for (int i = 0; i < 6; i++) {
+      Serial.print("Línea ");
+      Serial.print(i);
+      Serial.print(": ");
+      Serial.println(datos[i]);
+      mensaje += String(datos[i]) + "\n";
+    }
 
-  String mensaje = String(datosRecibidos.idNodo) + "," +
-                   String(datosRecibidos.temperatura) + "," +
-                   String(datosRecibidos.humedad) + "," +
-                   String(datosRecibidos.temperaturaA) + "," +
-                   String(datosRecibidos.humedadA);
+    sendMessage(mensaje);
 
-  sendMessage(mensaje);
-
-  Serial.print("Enviando: ");
-  Serial.println(mensaje);
-
-  // Preparar ACK
-  if(ackMsg.idNodo == datosRecibidos.idNodo)
-    ackMsg.recibido = true;
-
-  // Enviar ACK a la MAC que envió el paquete
-  esp_now_send(recv_info->src_addr, (uint8_t *)&ackMsg, sizeof(ackMsg));
+    int idExtraido = -1;
+    sscanf(datos[0], "%d", &idExtraido);
+    if (idExtraido >= 0) {
+      ack.idNodo = (uint8_t)idExtraido;
+      ack.recibido = true;
+      esp_now_send(info->src_addr, (uint8_t *)&ack, sizeof(ack));
+    }
+  }
 }
 
 void setup() {
@@ -78,25 +71,23 @@ void setup() {
   LoRa.setPins(NSS, RESET);
 
   if (!LoRa.begin(915E6)) {
-    Serial.println("Error al iniciar LoRa");
-    while (1);
+  Serial.println("Error al iniciar LoRa");
+  while (1);
   }
 
   LoRa.setTxPower(20);
   Serial.println("Transmisor iniciado");
 
   WiFi.mode(WIFI_STA);
-  Serial.print("MAC del nodo principal: ");
-  Serial.println(WiFi.macAddress());
 
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error al iniciar ESP-NOW");
     return;
   }
 
-  esp_now_register_recv_cb(OnDataRecv);
+  esp_now_register_recv_cb(onReceive);
 }
 
 void loop() {
-  // Vacío: toda la lógica está en el callback OnDataRecv()
+  // vacío
 }
