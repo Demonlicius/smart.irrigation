@@ -1,3 +1,8 @@
 {
-    "cmake.sourceDirectory": "C:/Users/alvar/OneDrive - Universidad Autónoma de Tamaulipas/Documentos/GitHub/smart.irrigation/Libraries/DallasTemperature"
+    "cmake.sourceDirectory": "C:/Users/alvar/OneDrive - Universidad Autónoma de Tamaulipas/Documentos/GitHub/smart.irrigation/Libraries/DallasTemperature",
+    "idf.portWin": "COM10",
+    "idf.espIdfPathWin": "d:\\Programas\\ESPRESSIF\\v5.4.2\\esp-idf",
+    "idf.toolsPathWin": "C:\\Users\\alvar\\.espressif",
+    "idf.pythonInstallPath": "C:\\Users\\alvar\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
+    "idf.flashType": "JTAG"
 }

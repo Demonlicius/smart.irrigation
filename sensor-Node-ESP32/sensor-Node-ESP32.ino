@@ -12,13 +12,13 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 DHTesp dht;
 
-// Dirección MAC del receptor
-uint8_t receptorMAC[] = {0x78, 0x42, 0x1C, 0x67, 0xAA, 0x2C}; // Ajusta según tu nodo receptor
+// Dirección MAC del receptor (Nodo Principal)
+uint8_t receptorMAC[] = {0x78, 0x42, 0x1C, 0x67, 0xAA, 0x2C}; 
 
-// Mensaje a enviar: arreglo de 6 líneas de texto
+// Mensaje a enviar
 char datos[6][32];
 unsigned long t0 = 0;
-const unsigned long intervalo = 10000;  // 10 segundos
+const unsigned long intervalo = 1000;  // 10 segundos
 int lineaindex = 0;
 
 // ACK de aplicación
@@ -41,10 +41,11 @@ void onReceive(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
   }
 }
 
-// Callback para confirmar si se recibió ACK
+// Callback para confirmar envío físico
 void onSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("Estado de envio: ");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "ACK recibido" : "Fallo");
+  // Opcional: Debug
+  // Serial.print("Envío físico: ");
+  // Serial.println(status == ESP_NOW_SEND_SUCCESS ? "OK" : "Error");
 }
 
 void setup() {
@@ -78,28 +79,42 @@ void loop() {
   if(millis() - t0 >= intervalo){
     t0 = millis();
 
-    sensors.requestTemperatures(); // Send the command to get temperatures
+    sensors.requestTemperatures(); 
     TempAndHumidity data = dht.getTempAndHumidity();
     float temperatura_soil = sensors.getTempCByIndex(0);
     int   humedad_suelo = map(analogRead(sensor),1200,4095,100,0);
     float humedad_ambiental = data.humidity;
     float temperatura_ambiental = data.temperature;
 
-    snprintf(datos[lineaindex], sizeof(datos[lineaindex]), "%d,%.2f,%d,%.2f,%.2f",idNodo,temperatura_soil,humedad_suelo
-    ,humedad_ambiental,temperatura_ambiental);
+    // Formatear datos
+    snprintf(datos[lineaindex], sizeof(datos[lineaindex]), "%d,%.2f,%d,%.2f,%.2f", 
+             idNodo, temperatura_soil, humedad_suelo, humedad_ambiental, temperatura_ambiental);
 
     lineaindex++;
 
-    if (lineaindex>=6) {
+    // Si llenamos el buffer de 6 líneas, enviamos
+    if (lineaindex >= 6) {
       lineaindex = 0;
 
+      // --- CORRECCIÓN IMPORTANTE: Reiniciar bandera antes de enviar ---
+      ackRecibido = false; 
+      // ---------------------------------------------------------------
+
       esp_err_t result = esp_now_send(receptorMAC, (uint8_t *)datos, sizeof(datos));
+      
       if (result != ESP_OK) {
-        Serial.println("Error al enviar");
+        Serial.println("Error al enviar petición ESP-NOW");
       } else {
+        // Esperar ACK del nodo principal (máximo 500ms)
         unsigned long espera = millis();
         while (!ackRecibido && millis() - espera < 500){
           delay(10);
+        }
+        
+        if(ackRecibido) {
+          Serial.println("Datos confirmados por el receptor");
+        } else {
+          Serial.println("No hubo respuesta (ACK) del receptor");
         }
       }
     }
